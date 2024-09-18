@@ -4,12 +4,14 @@ import (
 	"QrLanche/backend/config"
 	"QrLanche/backend/pkg/model"
 	"fmt"
+
+	"github.com/lib/pq"
 )
 
-func CreateMenuItem(item model.MenuItem) (int, error) {
+func CreateOrder(order model.Order) (int, error) {
     sqlStatement := `
-        INSERT INTO menu_items (name, price)
-        VALUES ($1, $2)
+        INSERT INTO orders (customers, itens, total)
+        VALUES ($1, $2, $3)
         RETURNING id`
     var id int
 
@@ -18,15 +20,15 @@ func CreateMenuItem(item model.MenuItem) (int, error) {
         return 0, fmt.Errorf("banco de dados não inicializado")
     }
 
-    err := config.DB.QueryRow(sqlStatement, item.Name, item.Price).Scan(&id)
+    err := config.DB.QueryRow(sqlStatement, order.Customer, order.Itens).Scan(&id)
     if err != nil {
         return 0, err
     }
-    fmt.Printf("Novo item com ID: %d criado.\n", id)
+    fmt.Printf("Novo pedido com ID: %d criado.\n", id)
     return id, nil
 }
 
-func GetAllMenuItems() ([]model.MenuItem, error) {
+func GetAllOrdes() ([]model.MenuItem, error) {
 	sqlStatement := `SELECT id, name, price FROM menu_items`
 
     rows, err := config.DB.Query(sqlStatement)
@@ -35,7 +37,7 @@ func GetAllMenuItems() ([]model.MenuItem, error) {
     }
     defer rows.Close()
 
-    var menuItems []model.MenuItem
+    var Order []model.MenuItem
 
     for rows.Next() {
         var item model.MenuItem
@@ -47,7 +49,7 @@ func GetAllMenuItems() ([]model.MenuItem, error) {
         }
 
         // Adicionando o item ao slice
-        menuItems = append(menuItems, item)
+        Order = append(Order, item)
     }
     
     // Verificando erros de iteração
@@ -55,10 +57,10 @@ func GetAllMenuItems() ([]model.MenuItem, error) {
         return nil, fmt.Errorf("erro na iteração dos resultados: %v", err)
     }
 
-    return menuItems, nil
+    return Order, nil
 }
 
-func SelectItemById(item model.MenuItem) (model.MenuItem, error) {
+func SelectOrderById(item model.MenuItem) (model.MenuItem, error) {
     sqlStatement := `SELECT id, name, price FROM menu_items WHERE id = $1;`
 
     var selectedItem model.MenuItem
@@ -74,7 +76,7 @@ func SelectItemById(item model.MenuItem) (model.MenuItem, error) {
     return selectedItem, nil
 }
 
-func DeleteItem(item model.MenuItem) error {
+func DeleteOrder(item model.MenuItem) error {
     sqlStatement := `DELETE FROM menu_items WHERE id = $1;`
 
     // Executa a query para deletar o item
@@ -88,7 +90,7 @@ func DeleteItem(item model.MenuItem) error {
     return nil
 }
 
-func UpdateItem(item model.MenuItem) error{
+func UpdateOrder(item model.MenuItem) error{
     sqlStatement := `
     UPDATE menu_items
     SET name = $1, price = $2
@@ -100,4 +102,27 @@ func UpdateItem(item model.MenuItem) error{
 
     fmt.Printf("Item atualizado: ID=%d, Name=%s, Price=%.2f\n", item.ID, item.Name, item.Price)
     return nil
+}
+
+func GetPricesByIds(ids []int) ([]float64, error) {
+    // Constrói a query SQL
+    sqlStatement := `SELECT price FROM menu_items WHERE id = ANY($1);`
+
+    // Executa a query
+    rows, err := config.DB.Query(sqlStatement, pq.Array(ids))
+    if err != nil {
+        return nil, fmt.Errorf("erro ao buscar preços: %v", err)
+    }
+    defer rows.Close()
+
+    var prices []float64
+    for rows.Next() {
+        var price float64
+        if err := rows.Scan(&price); err != nil {
+            return nil, fmt.Errorf("erro ao ler os preços: %v", err)
+        }
+        prices = append(prices, price)
+    }
+
+    return prices, nil
 }

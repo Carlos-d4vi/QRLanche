@@ -22,7 +22,6 @@ func main() {
 	// Criando uma nova instância do Gin
 	r := gin.Default()
 
-
 	r.GET("/listitems", controller.GetAllMenuItemsHandler)
 	
 	r.GET("/findItem", controller.SelectItemByIdHandler)
