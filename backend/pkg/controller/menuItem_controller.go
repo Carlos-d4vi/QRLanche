@@ -25,7 +25,7 @@ func CreateMenuItemHandler(c *gin.Context) {
 
     c.JSON(http.StatusOK, gin.H{
         "message": "menu_item criado com sucesso!",
-        "orderID": id,
+        "menuitemID": id,
     })
 }
 

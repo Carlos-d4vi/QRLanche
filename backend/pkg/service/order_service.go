@@ -22,16 +22,9 @@ func CreateOrder(order model.Order) (int, error) {
 		return 0, fmt.Errorf("banco de dados não inicializado")
 	}
 
-	// Calcula o total com base nos itens do pedido
-	prices, err := GetPricesByIds(order.Itens)
-	if err != nil {
-		return 0, fmt.Errorf("erro ao buscar preços dos itens: %v", err)
-	}
+	item, err := GetNamesAndPricesByIds(order.Itens)
 
-	total := 0.0
-	for _, price := range prices {
-		total += price
-	}
+	total := GetTotalOfPricesByMenuItem(item)
 
 	// Executa a query para criar o pedido
 	err = config.DB.QueryRow(sqlStatement, order.CustomerID, pq.Array(order.Itens), total, order.TableID).Scan(&id)
@@ -45,49 +38,64 @@ func CreateOrder(order model.Order) (int, error) {
 
 // Função para buscar todas as ordens
 func GetAllOrders() ([]model.Order, error) {
-	sqlStatement := `SELECT id, customer_id, itens, total, table_id FROM orders`
+    sqlStatement := `SELECT id, customer_id, itens, total, table_id FROM orders`
 
-	rows, err := config.DB.Query(sqlStatement)
-	if err != nil {
-		return nil, fmt.Errorf("erro ao buscar ordens: %v", err)
-	}
-	defer rows.Close()
+    rows, err := config.DB.Query(sqlStatement)
+    if err != nil {
+        return nil, fmt.Errorf("erro ao buscar ordens: %v", err)
+    }
+    defer rows.Close()
 
-	var orders []model.Order
+    var orders []model.Order
 
-	for rows.Next() {
-		var order model.Order
-		err = rows.Scan(&order.ID, &order.CustomerID, pq.Array(&order.Itens), &order.Total, &order.TableID)
-		if err != nil {
-			return nil, fmt.Errorf("erro ao ler resultados: %v", err)
-		}
-		orders = append(orders, order)
-	}
+    for rows.Next() {
+        var order model.Order
+        var itens pq.Int64Array // Alteração: usando pq.Int64Array para lidar com o array de IDs
+        
+        err = rows.Scan(&order.ID, &order.CustomerID, &itens, &order.Total, &order.TableID)
+        if err != nil {
+            return nil, fmt.Errorf("erro ao ler resultados: %v", err)
+        }
 
-	if err = rows.Err(); err != nil {
-		return nil, fmt.Errorf("erro na iteração dos resultados: %v", err)
-	}
+        // Converta o pq.Int64Array para []int se necessário
+        order.Itens = make([]int, len(itens))
+        for i, item := range itens {
+            order.Itens[i] = int(item)
+        }
 
-	return orders, nil
+        orders = append(orders, order)
+    }
+
+    if err = rows.Err(); err != nil {
+        return nil, fmt.Errorf("erro na iteração dos resultados: %v", err)
+    }
+
+    return orders, nil
 }
 
 // Função para buscar uma ordem por ID
-func SelectOrderById(id int) (model.Order, error) {
+func SelectOrderById(id int64) (model.Order, error) {
 	sqlStatement := `SELECT id, customer_id, itens, total, table_id FROM orders WHERE id = $1`
 
 	var order model.Order
+	var itens pq.Int64Array // Alteração: usando pq.Int64Array para lidar com o array de IDs
 	row := config.DB.QueryRow(sqlStatement, id)
 
-	err := row.Scan(&order.ID, &order.CustomerID, pq.Array(&order.Itens), &order.Total, &order.TableID)
+	err := row.Scan(&order.ID, &order.CustomerID, &itens, &order.Total, &order.TableID)
 	if err != nil {
 		return model.Order{}, fmt.Errorf("erro ao encontrar a ordem: %v", err)
+	}
+
+	order.Itens = make([]int, len(itens))
+	for i, item := range itens {
+		order.Itens[i] = int(item)
 	}
 
 	return order, nil
 }
 
 // Função para deletar uma ordem
-func DeleteOrder(id int) error {
+func DeleteOrder(id int64) error {
 	sqlStatement := `DELETE FROM orders WHERE id = $1`
 
 	_, err := config.DB.Exec(sqlStatement, id)
@@ -103,18 +111,15 @@ func DeleteOrder(id int) error {
 func UpdateOrder(order model.Order) error {
 	sqlStatement := `
 	UPDATE orders
-	SET customer_id = $1, itens = $2, total = $3, table_id = $4
+	SET customer_id = $1, itens = $2, total = $3,  table_id = $4
 	WHERE id = $5`
 
-	prices, err := GetPricesByIds(order.Itens)
+	item, err := GetNamesAndPricesByIds(order.Itens)
 	if err != nil {
-		return fmt.Errorf("erro ao buscar preços dos itens: %v", err)
+		return err
 	}
 
-	total := 0.0
-	for _, price := range prices {
-		total += price
-	}
+	total := GetTotalOfPricesByMenuItem(item)
 
 	_, err = config.DB.Exec(sqlStatement, order.CustomerID, pq.Array(order.Itens), total, order.TableID, order.ID)
 	if err != nil {
@@ -125,24 +130,36 @@ func UpdateOrder(order model.Order) error {
 	return nil
 }
 
-// Função para buscar os preços dos itens do menu por seus IDs
-func GetPricesByIds(ids []int) ([]float64, error) {
-	sqlStatement := `SELECT price FROM menu_items WHERE id = ANY($1);`
-
-	rows, err := config.DB.Query(sqlStatement, pq.Array(ids))
-	if err != nil {
-		return nil, fmt.Errorf("erro ao buscar preços: %v", err)
+func GetTotalOfPricesByMenuItem(menuItem []model.MenuItem) (float64){
+	var total float64
+	for _, price := range menuItem {
+		total += price.Price
 	}
-	defer rows.Close()
+	return total
+}
 
-	var prices []float64
-	for rows.Next() {
-		var price float64
-		if err := rows.Scan(&price); err != nil {
-			return nil, fmt.Errorf("erro ao ler os preços: %v", err)
-		}
-		prices = append(prices, price)
-	}
+// Função para buscar os nomes e preços dos itens do menu por seus IDs
+func GetNamesAndPricesByIds(ids []int) ([]model.MenuItem, error) {
+    sqlStatement := `SELECT id, name, price FROM menu_items WHERE id = ANY($1);`
 
-	return prices, nil
+    rows, err := config.DB.Query(sqlStatement, pq.Array(ids))
+    if err != nil {
+        return nil, fmt.Errorf("erro ao buscar nomes e preços: %v", err)
+    }
+    defer rows.Close()
+
+    var menuItems []model.MenuItem
+    for rows.Next() {
+        var item model.MenuItem
+        if err := rows.Scan(&item.ID, &item.Name, &item.Price); err != nil {
+            return nil, fmt.Errorf("erro ao ler os nomes e preços: %v", err)
+        }
+        menuItems = append(menuItems, item)
+    }
+
+    if err := rows.Err(); err != nil {
+        return nil, fmt.Errorf("erro na iteração dos resultados: %v", err)
+    }
+
+    return menuItems, nil
 }

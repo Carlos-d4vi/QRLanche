@@ -21,16 +21,26 @@ func main() {
 
 	// Criando uma nova instância do Gin
 	r := gin.Default()
-
-	r.GET("/listitems", controller.GetAllMenuItemsHandler)
-	
-	r.GET("/findItem", controller.SelectItemByIdHandler)
 	
 	r.POST("/newitem", controller.CreateMenuItemHandler)
 	
-	r.DELETE("/deleteItem", controller.DeleteItemHandler)
+	r.GET("/listitems", controller.GetAllMenuItemsHandler)
 	
-	r.PUT("/updateItem", controller.UpdateItemHandler)
+	r.GET("/finditem", controller.SelectItemByIdHandler)
+	
+	r.DELETE("/deleteitem", controller.DeleteItemHandler)
+	
+	r.PUT("/updateitem", controller.UpdateItemHandler)
+	
+	r.POST("/neworder", controller.CreateOrderHandler)
+	
+	r.DELETE("/deleteorder", controller.DeleteOrderHandler)
+	
+	r.GET("/getallorder", controller.GetAllOrdersHandler)
+	
+	r.GET("/getorderbyid", controller.SelectOrderByIdHandler)
+	
+	r.PUT("/updateorder", controller.UpdateOrderHandler)
 
 	// Iniciando o servidor na porta 8080 usando o Gin
 	fmt.Println("Iniciando servidor na porta 8080...")
