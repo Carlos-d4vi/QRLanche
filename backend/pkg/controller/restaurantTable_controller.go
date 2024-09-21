@@ -4,8 +4,7 @@ import (
 	"QrLanche/backend/pkg/model"
 	"QrLanche/backend/pkg/service"
 	"net/http"
-	"strconv"
-
+	
 	"github.com/gin-gonic/gin"
 )
 
@@ -90,18 +89,25 @@ func UpdateRestaurantTableHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Mesa atualizada com sucesso!",
 	})
+
+	c.JSON(http.StatusOK, gin.H{
+		"Table_id":      table.ID,
+		"Table_number":  table.Number,
+		"Table_available": table.Available,
+	})
 }
 
 // Handler para deletar uma mesa
 func DeleteRestaurantTableHandler(c *gin.Context) {
-	idParam := c.Param("id")
-	id, err := strconv.ParseInt(idParam, 10, 64)
+	var table model.RestaurantTable
+
+	err := c.ShouldBindJSON(&table)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "ID inválido"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	err = service.DeleteRestaurantTable(id)
+	err = service.DeleteRestaurantTable(table.ID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -109,5 +115,11 @@ func DeleteRestaurantTableHandler(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Mesa deletada com sucesso!",
+	})
+
+	c.JSON(http.StatusOK, gin.H{
+		"Table_id":      table.ID,
+		"Table_number":  table.Number,
+		"Table_available": table.Available,
 	})
 }
