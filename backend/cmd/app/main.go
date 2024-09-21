@@ -32,6 +32,7 @@ func main() {
 	
 	r.PUT("/updateitem", controller.UpdateItemHandler)
 	
+	// Order
 	r.POST("/neworder", controller.CreateOrderHandler)
 	
 	r.DELETE("/deleteorder", controller.DeleteOrderHandler)
@@ -41,6 +42,17 @@ func main() {
 	r.GET("/getorderbyid", controller.SelectOrderByIdHandler)
 	
 	r.PUT("/updateorder", controller.UpdateOrderHandler)
+	
+	// Customer
+	r.POST("/newcustomer", controller.CreateCustomerHandler)
+	
+	r.GET("/getallcustomers", controller.GetAllCustomersHandler)
+	
+	r.GET("/getcustomer", controller.GetCustomerByIDHandler)
+	
+	r.PUT("/updatecustomer", controller.UpdateCustomerHandler)
+
+	r.DELETE("/deletecustomer", controller.DeleteCustomerHandle)
 
 	// Iniciando o servidor na porta 8080 usando o Gin
 	fmt.Println("Iniciando servidor na porta 8080...")
