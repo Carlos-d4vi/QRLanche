@@ -52,14 +52,11 @@ func GetAllRestaurantTablesHandler(c *gin.Context) {
 
 // Handler para buscar uma mesa por ID
 func GetRestaurantTableByIDHandler(c *gin.Context) {
-	idParam := c.Param("id")
-	id, err := strconv.ParseInt(idParam, 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "ID inválido"})
-		return
-	}
+	var table model.RestaurantTable
 
-	table, err := service.GetRestaurantTableByID(id)
+	c.ShouldBindJSON(&table)
+
+	table, err := service.GetRestaurantTableByID(table.ID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
@@ -67,6 +64,9 @@ func GetRestaurantTableByIDHandler(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Mesa encontrada com sucesso!",
+	})
+
+	c.JSON(http.StatusOK, gin.H{
 		"Table_id":      table.ID,
 		"Table_number":  table.Number,
 		"Table_available": table.Available,

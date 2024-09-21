@@ -56,15 +56,15 @@ func main() {
 	r.DELETE("/deletecustomer", controller.DeleteCustomerHandle)
 
 	// RestaurantTable
-	r.POST("/newtrestaurantTable", controller.CreateRestaurantTableHandler)
+	r.POST("/newrestaurantTable", controller.CreateRestaurantTableHandler)
 	
-	r.GET("/getalltrestaurantTables", controller.GetAllRestaurantTablesHandler)
+	r.GET("/getallrestaurantTables", controller.GetAllRestaurantTablesHandler)
 	
-	r.GET("/gettrestaurantTable", controller.GetRestaurantTableByIDHandler)
+	r.GET("/getrestaurantTable", controller.GetRestaurantTableByIDHandler)
 	
-	r.PUT("/updatetrestaurantTable", controller.UpdateRestaurantTableHandler)
+	r.PUT("/updaterestaurantTable", controller.UpdateRestaurantTableHandler)
 
-	r.DELETE("/deletetrestaurantTable", controller.DeleteRestaurantTableHandler)
+	r.DELETE("/deleterestaurantTable", controller.DeleteRestaurantTableHandler)
 
 	// Iniciando o servidor na porta 8080 usando o Gin
 	fmt.Println("Iniciando servidor na porta 8080...")

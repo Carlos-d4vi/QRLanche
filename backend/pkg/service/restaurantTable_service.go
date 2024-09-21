@@ -9,8 +9,8 @@ import (
 // Função para criar uma nova mesa
 func CreateRestaurantTable(table model.RestaurantTable) (int64, error) {
 	sqlStatement := `
-		INSERT INTO restaurant_tables (number, available)
-		VALUES ($1, $2)
+		INSERT INTO restaurant_tables (number)
+		VALUES ($1)
 		RETURNING id`
 
 	var id int64
@@ -21,7 +21,7 @@ func CreateRestaurantTable(table model.RestaurantTable) (int64, error) {
 	}
 
 	// Executa a query para criar a mesa
-	err := config.DB.QueryRow(sqlStatement, table.Number, table.Available).Scan(&id)
+	err := config.DB.QueryRow(sqlStatement, table.Number).Scan(&id)
 	if err != nil {
 		return 0, fmt.Errorf("erro ao criar a mesa: %v", err)
 	}
